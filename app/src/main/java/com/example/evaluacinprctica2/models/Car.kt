@@ -4,6 +4,7 @@ data class Car(
     val ID: String = "",
     val Estatus: String = "",
     val Fecha_Alta: String = "",
+    val Fecha_Renta: String = "",
     val FotoUrl: String = "",
     val Marca: String = "",
     val Modelo: String = ""

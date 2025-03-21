@@ -24,13 +24,15 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.firestore.FirebaseFirestore
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Calendar
 
 class HomeFragment : Fragment() {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var carAdapter: CarAdapter
     private lateinit var carList: MutableList<Car>
-    private lateinit var database: DatabaseReference
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
     private lateinit var searchView: SearchView
     private lateinit var videoView: VideoView
@@ -57,8 +59,6 @@ class HomeFragment : Fragment() {
         carList = mutableListOf()
         carAdapter = CarAdapter(carList)
         recyclerView.adapter = carAdapter
-
-        database = FirebaseDatabase.getInstance().getReference("Autos")
 
         loadCars()
 
@@ -125,7 +125,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun showFilterDialog() {
-        val options = arrayOf("Mostrar solo activos", "Mostrar solo inactivos", "Registrados después de cierta fecha")
+        val options = arrayOf("Mostrar solo activos", "Mostrar solo inactivos", "Registrados después de cierta fecha","Mostrar todos")
         AlertDialog.Builder(requireContext())
             .setTitle("Selecciona un filtro")
             .setItems(options) { _, which ->
@@ -133,16 +133,29 @@ class HomeFragment : Fragment() {
                     0 -> carAdapter.updateList(carList.filter { it.Estatus == "Activo" })
                     1 -> carAdapter.updateList(carList.filter { it.Estatus == "Inactivo" })
                     2 -> showDatePicker()
+                    3 -> loadCars()
                 }
             }
             .show()
     }
 
     private fun showDatePicker() {
-        val datePicker = DatePickerDialog(requireContext(), { _, year, month, day ->
-            val selectedDate = "$year-${month + 1}-$day"
-            carAdapter.updateList(carList.filter { it.Fecha_Alta >= selectedDate })
-        }, 2024, 0, 1)
+        val calendar = Calendar.getInstance()
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH)
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+        val datePicker = DatePickerDialog(requireContext(), { _, selectedYear, selectedMonth, selectedDay ->
+            val selectedDateString = String.format("%04d-%02d-%02d", selectedYear, selectedMonth + 1, selectedDay)
+            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+            val selectedDate = LocalDate.parse(selectedDateString, formatter)
+
+            carAdapter.updateList(carList.filter {
+                val vehiculoDate = LocalDate.parse(it.Fecha_Alta, formatter)
+                vehiculoDate.isAfter(selectedDate) || vehiculoDate.isEqual(selectedDate)
+            })
+        }, year, month, day)
+
         datePicker.show()
     }
 }

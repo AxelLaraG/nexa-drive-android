@@ -1,22 +1,31 @@
 package com.example.evaluacinprctica2.ui.home
 
+import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
+import android.widget.Toast
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.example.evaluacinprctica2.R
 import com.example.evaluacinprctica2.databinding.FragmentAddCarBinding
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
+import java.io.File
+import java.text.SimpleDateFormat
 import java.util.*
 
 class AddCarFragment : Fragment() {
@@ -24,11 +33,9 @@ class AddCarFragment : Fragment() {
     private var _binding: FragmentAddCarBinding? = null
     private val binding get() = _binding!!
     private var imageUri: Uri? = null
-
     private val CAMERA_REQUEST_CODE = 2000
+    private val CAMERA_PERMISSION_CODE = 100
     private val GALLERY_REQUEST_CODE = 1000
-
-    // Referencia al ProgressBar
     private lateinit var progressBar: View
 
     override fun onCreateView(
@@ -42,18 +49,58 @@ class AddCarFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Inicializa el ProgressBar
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA)
+            != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(requireActivity(),
+                arrayOf(Manifest.permission.CAMERA), CAMERA_PERMISSION_CODE)
+        }
+
         progressBar = binding.root.findViewById(R.id.progressBar)
 
-        // Botón para seleccionar imagen
         binding.btnSeleccionarFoto.setOnClickListener {
             showImageSourceDialog()
         }
 
-        // Botón para guardar datos
         binding.btnGuardar.setOnClickListener {
             guardarVehiculo()
         }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        if (requestCode == CAMERA_PERMISSION_CODE) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(requireContext(), "Permiso de cámara concedido", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(requireContext(), "Permiso de cámara denegado", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        if (resultCode == Activity.RESULT_OK) {
+            when (requestCode) {
+                GALLERY_REQUEST_CODE -> {
+                    imageUri = data?.data
+                }
+                CAMERA_REQUEST_CODE -> {
+                    if (imageUri == null) {
+                        showErrorDialog("Error al capturar la imagen")
+                        return
+                    }
+                }
+            }
+            binding.ivFotoCarro.setImageURI(imageUri)
+            binding.ivFotoCarro.visibility = View.VISIBLE
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 
     private fun showImageSourceDialog() {
@@ -70,15 +117,33 @@ class AddCarFragment : Fragment() {
             .show()
     }
 
-    // Abrir la cámara
     private fun openCamera() {
-        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA)
+            != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(requireContext(), "Permiso de cámara no concedido", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val imageFile = File(requireContext().externalCacheDir, "${UUID.randomUUID()}.jpg")
+
+        imageUri = FileProvider.getUriForFile(
+            requireContext(),
+            "${requireContext().packageName}.provider",
+            imageFile
+        )
+
+        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
+            putExtra(MediaStore.EXTRA_OUTPUT, imageUri)
+            addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        }
+
         if (intent.resolveActivity(requireContext().packageManager) != null) {
             startActivityForResult(intent, CAMERA_REQUEST_CODE)
+        } else {
+            showErrorDialog("No se encontró una aplicación de cámara.")
         }
     }
 
-    // Abrir la galería
     private fun openGallery() {
         val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
         startActivityForResult(intent, GALLERY_REQUEST_CODE)
@@ -124,37 +189,60 @@ class AddCarFragment : Fragment() {
     private fun guardarDatosEnFirestore(marca: String, modelo: String, fotoUrl: String) {
         val db = FirebaseFirestore.getInstance()
 
-        // Generar ID automático para el documento
-        val vehiculoId = db.collection("vehiculos").document().id
+        // Obtener la referencia del contador de IDs
+        val counterRef = db.collection("config").document("vehiculo_counter")
 
-        val vehiculo = hashMapOf(
-            "ID" to vehiculoId,
-            "Marca" to marca,
-            "Modelo" to modelo,
-            "Estatus" to "Activo",  // Por defecto, el vehículo será activo
-            "Fecha_Alta" to System.currentTimeMillis().toString(), // Timestamp actual como String
-            "FotoUrl" to fotoUrl
-        )
+        counterRef.get()
+            .addOnSuccessListener { document ->
+                try {
+                    val currentCounter = document.getLong("counter") ?: 0L
+                    val newID = currentCounter + 1
 
-        db.collection("vehiculos").document(vehiculoId)
-            .set(vehiculo)
-            .addOnSuccessListener {
-                progressBar.visibility = View.GONE
-                binding.btnGuardar.isEnabled = true
-                binding.btnSeleccionarFoto.isEnabled = true
-                showSuccessDialog("Vehículo guardado correctamente")
+                    val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                    val currentDate = sdf.format(Date())
 
-                findNavController().navigate(R.id.action_addCarFragment_to_homeFragment)
+                    // Crear el objeto vehículo con el nuevo ID numérico
+                    val vehiculo = hashMapOf(
+                        "ID" to newID.toString(),
+                        "Marca" to marca,
+                        "Modelo" to modelo,
+                        "Estatus" to "Activo",  // Por defecto, el vehículo será activo
+                        "Fecha_Alta" to currentDate, // Timestamp actual como String
+                        "Fecha_Renta" to "",
+                        "FotoUrl" to fotoUrl
+                    )
+
+                    db.collection("vehiculos").document(newID.toString())
+                        .set(vehiculo)
+                        .addOnSuccessListener {
+                            counterRef.update("counter", newID)
+                                .addOnSuccessListener {
+                                    progressBar.visibility = View.GONE
+                                    binding.btnGuardar.isEnabled = true
+                                    binding.btnSeleccionarFoto.isEnabled = true
+                                    showSuccessDialog("Vehículo guardado correctamente")
+                                    findNavController().navigate(R.id.action_addCarFragment_to_homeFragment)
+                                }
+                                .addOnFailureListener { e ->
+                                    showErrorDialog("Error al actualizar contador: ${e.message}")
+                                }
+                        }
+                        .addOnFailureListener { e ->
+                            showErrorDialog("Error al guardar vehículo: ${e.message}")
+                        }
+                } catch (e: Exception) {
+                    showErrorDialog("Error inesperado: ${e.message}")
+                }
             }
             .addOnFailureListener { e ->
                 progressBar.visibility = View.GONE
                 binding.btnGuardar.isEnabled = true
                 binding.btnSeleccionarFoto.isEnabled = true
-                showErrorDialog("Error al guardar: ${e.message}")
+                showErrorDialog("Error al obtener contador: ${e.message}")
+                Log.e("FirestoreError", "Error al obtener contador: ${e.message}")
             }
     }
 
-    // Función para mostrar un Dialog de error
     private fun showErrorDialog(message: String) {
         AlertDialog.Builder(requireContext())
             .setTitle("Error")
@@ -163,7 +251,6 @@ class AddCarFragment : Fragment() {
             .show()
     }
 
-    // Función para mostrar un Dialog de éxito
     private fun showSuccessDialog(message: String) {
         AlertDialog.Builder(requireContext())
             .setTitle("Éxito")
@@ -172,18 +259,5 @@ class AddCarFragment : Fragment() {
             .show()
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == 1000 && resultCode == Activity.RESULT_OK) {
-            imageUri = data?.data
-            binding.ivFotoCarro.setImageURI(imageUri)
-            binding.ivFotoCarro.visibility = View.VISIBLE
-        }
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
-    }
 }
 

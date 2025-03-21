@@ -19,24 +19,55 @@
             android:layout_weight="2"
             android:orientation="vertical">
 
+            <!-- ID del vehículo -->
+            <TextView
+                android:id="@+id/tvID"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ID: "
+                android:textStyle="bold"/>
+
+            <!-- Modelo del vehículo -->
             <TextView
                 android:id="@+id/tvModelo"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Modelo"
-                android:textStyle="bold"/>
+                android:text="Modelo: "
+            android:textStyle="bold"/>
 
+            <!-- Marca del vehículo -->
             <TextView
                 android:id="@+id/tvMarca"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Marca"/>
+                android:text="Marca: "
+            android:textStyle="bold"/>
 
+            <!-- Estado del vehículo -->
             <TextView
                 android:id="@+id/tvEstado"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Estado"/>
+                android:text="Estatus: "
+            android:textStyle="bold"/>
+
+            <!-- Fecha Alta -->
+            <TextView
+                android:id="@+id/tvFechaAlta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Fecha Alta: "
+            android:textStyle="bold"/>
+
+            <!-- Fecha de Renta (Solo si el estatus es "Inactivo" y la fecha no está vacía) -->
+            <TextView
+                android:id="@+id/tvFechaRenta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Fecha Renta: "
+            android:visibility="gone"
+            android:textStyle="italic"/>
+
         </LinearLayout>
 
         <ImageView
@@ -48,4 +79,5 @@
     </LinearLayout>
 
 </androidx.cardview.widget.CardView>
+
 
