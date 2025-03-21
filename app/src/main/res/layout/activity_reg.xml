@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/tvTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Registro de Usuario"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="16dp"/>
+
+            <EditText
+                android:id="@+id/etEmail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/ins_mail"
+                android:inputType="textEmailAddress"
+                android:padding="10dp"
+                android:background="@android:drawable/editbox_background"
+                android:layout_marginBottom="10dp"/>
+
+            <EditText
+                android:id="@+id/etPassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/ins_pass"
+                android:inputType="textPassword"
+                android:padding="10dp"
+                android:background="@android:drawable/editbox_background"
+                android:layout_marginBottom="10dp"/>
+
+            <EditText
+                android:id="@+id/etConfirmPassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/ins_confPass"
+                android:inputType="textPassword"
+                android:padding="10dp"
+                android:background="@android:drawable/editbox_background"
+                android:layout_marginBottom="10dp"/>
+
+            <Button
+                android:id="@+id/btnRegister"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/ins_reg"
+                android:backgroundTint="@android:color/black"
+                android:textColor="@android:color/white"
+                android:layout_marginBottom="10dp"/>
+
+            <TextView
+                android:id="@+id/tvLogin"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/btn_rtnLog"
+                android:textColor="@android:color/holo_blue_dark"
+                android:textSize="14sp"
+                android:layout_marginTop="10dp"
+                android:clickable="true"
+                android:focusable="true"/>
+        </LinearLayout>
+    </ScrollView>
+</layout>
