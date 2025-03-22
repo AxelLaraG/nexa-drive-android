@@ -12,7 +12,7 @@ import com.bumptech.glide.request.RequestOptions
 import com.example.evaluacinprctica2.R
 import com.example.evaluacinprctica2.models.Car
 
-class CarAdapter(private var carList: List<Car>) :
+class CarAdapter(private var carList: List<Car>, private val onItemClick: (Car) -> Unit) :
     RecyclerView.Adapter<CarAdapter.CarViewHolder>() {
 
     class CarViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -51,6 +51,10 @@ class CarAdapter(private var carList: List<Car>) :
             .load(car.FotoUrl)
             .apply(RequestOptions().transform(RoundedCorners(40)))
             .into(holder.ivCarImage)
+
+        holder.itemView.setOnClickListener {
+            onItemClick(car)  // Llamar al callback al hacer clic
+        }
     }
 
     override fun getItemCount(): Int = carList.size
@@ -60,4 +64,5 @@ class CarAdapter(private var carList: List<Car>) :
         notifyDataSetChanged()
     }
 }
+
 

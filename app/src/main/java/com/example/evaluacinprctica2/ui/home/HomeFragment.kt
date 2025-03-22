@@ -12,6 +12,7 @@ import android.widget.SearchView
 import android.widget.Toast
 import android.widget.VideoView
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -57,7 +58,12 @@ class HomeFragment : Fragment() {
 
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         carList = mutableListOf()
-        carAdapter = CarAdapter(carList)
+
+        // Modificar el adaptador para que maneje clics
+        carAdapter = CarAdapter(carList) { car ->
+            openEditCarFragment(car)
+        }
+
         recyclerView.adapter = carAdapter
 
         loadCars()
@@ -109,11 +115,16 @@ class HomeFragment : Fragment() {
             }
     }
 
-    /*private fun setupVideoPlayer() {
-        val videoUri = Uri.parse("android.resource://" + requireActivity().packageName + "/" + R.raw.video_demo)
-        videoView.setVideoURI(videoUri)
-        videoView.setOnPreparedListener { it.start() }
-    }*/
+    private fun openEditCarFragment(car: Car) {
+    // Crear un Bundle con los datos que quieras pasar al siguiente fragmento
+    val bundle = Bundle().apply {
+        putParcelable("car", car) // Pasa el objeto Car
+    }
+
+    // Navegar usando el NavController y pasar el Bundle con la acción
+    findNavController().navigate(R.id.action_home_to_editCar, bundle)
+}
+
 
     private fun filterList(query: String?) {
         val filteredList = carList.filter { car ->
@@ -125,7 +136,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun showFilterDialog() {
-        val options = arrayOf("Mostrar solo activos", "Mostrar solo inactivos", "Registrados después de cierta fecha","Mostrar todos")
+        val options = arrayOf("Mostrar solo activos", "Mostrar solo inactivos", "Registrados después de cierta fecha", "Mostrar todos")
         AlertDialog.Builder(requireContext())
             .setTitle("Selecciona un filtro")
             .setItems(options) { _, which ->
