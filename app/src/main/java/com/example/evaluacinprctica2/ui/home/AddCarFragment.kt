@@ -6,6 +6,10 @@ import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.ExifInterface
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
@@ -93,7 +97,8 @@ class AddCarFragment : Fragment() {
                     }
                 }
             }
-            binding.ivFotoCarro.setImageURI(imageUri)
+            val rotatedBitmap = fixImageRotation(imageUri!!)
+            binding.ivFotoCarro.setImageBitmap(rotatedBitmap)
             binding.ivFotoCarro.visibility = View.VISIBLE
         }
     }
@@ -101,6 +106,28 @@ class AddCarFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    private fun fixImageRotation(uri: Uri): Bitmap? {
+        val inputStream = requireContext().contentResolver.openInputStream(uri)
+        val bitmap = BitmapFactory.decodeStream(inputStream)
+
+        val exif = ExifInterface(requireContext().contentResolver.openInputStream(uri)!!)
+        val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED)
+
+        val rotatedBitmap = when (orientation) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> rotateImage(bitmap, 90f)
+            ExifInterface.ORIENTATION_ROTATE_180 -> rotateImage(bitmap, 180f)
+            ExifInterface.ORIENTATION_ROTATE_270 -> rotateImage(bitmap, 270f)
+            else -> bitmap
+        }
+        return rotatedBitmap
+    }
+
+    private fun rotateImage(bitmap: Bitmap, angle: Float): Bitmap {
+        val matrix = Matrix()
+        matrix.postRotate(angle)
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
     }
 
     private fun showImageSourceDialog() {

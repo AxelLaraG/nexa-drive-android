@@ -13,6 +13,9 @@
         <action
             android:id="@+id/action_home_to_editCar"
             app:destination="@id/fragment_edit_car" />
+        <action
+            android:id="@+id/action_home_to_add_car"
+            app:destination="@+id/nav_add_car"/>
     </fragment>
 
     <fragment

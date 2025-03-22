@@ -8,9 +8,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
-import android.os.Environment
 import android.provider.MediaStore
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -30,7 +28,6 @@ import com.example.evaluacinprctica2.models.Car
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import java.io.File
-import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -61,7 +58,7 @@ class EditCarFragment : Fragment() {
         fun newInstance(car: Car): EditCarFragment {
             val fragment = EditCarFragment()
             val bundle = Bundle()
-            bundle.putParcelable(ARG_CAR, car)  // Pasa el objeto Car como Parcelable
+            bundle.putParcelable(ARG_CAR, car)
             fragment.arguments = bundle
             return fragment
         }
@@ -89,9 +86,9 @@ class EditCarFragment : Fragment() {
         Glide.with(this).load(currentPhotoUrl).into(imgCarPhoto)
 
         if (currentPhotoUrl.isNotEmpty()) {
-            imgCarPhoto.visibility = View.VISIBLE // Hacer visible si ya tiene una foto
+            imgCarPhoto.visibility = View.VISIBLE
         } else {
-            imgCarPhoto.visibility = View.GONE // De lo contrario, mantenerlo oculto
+            imgCarPhoto.visibility = View.GONE
         }
 
         btnChangePhoto.setOnClickListener {
@@ -125,11 +122,9 @@ class EditCarFragment : Fragment() {
                 return@setOnClickListener
             }
 
-            // Convierte la fecha de alta a un objeto Date
             val fechaAlta = dateFormat.parse(fechaAltaString)
 
             if (fechaAlta != null) {
-                // Abre el DatePicker para la fecha de renta
                 showDatePickerDialog(etFechaRenta, fechaAlta)
             } else {
                 Toast.makeText(requireContext(), "Fecha de alta inválida", Toast.LENGTH_SHORT).show()
@@ -163,7 +158,6 @@ class EditCarFragment : Fragment() {
         if (resultCode == Activity.RESULT_OK || requestCode == CAMERA_REQUEST_CODE) {
             when (requestCode) {
                 REQUEST_IMAGE_PICK -> {
-                    // Foto seleccionada desde la galería
                     newPhotoUri = data?.data
                     newPhotoUri?.let { uri ->
                         Glide.with(this).load(uri).into(imgCarPhoto) // Actualiza el ImageView
@@ -194,21 +188,18 @@ class EditCarFragment : Fragment() {
             requireContext(),
             { _, year, month, dayOfMonth ->
                 val selectedDate = Calendar.getInstance().apply {
-                    set(year, month, dayOfMonth, 0, 0, 0) // Asegurarse de establecer la hora a 00:00:00
+                    set(year, month, dayOfMonth, 0, 0, 0)
                 }
 
-                // Verificar si la fecha seleccionada es anterior a la fecha de alta
                 if (selectedDate.before(Calendar.getInstance().apply { time = fechaAlta })) {
                     Toast.makeText(requireContext(), "La fecha de renta no puede ser antes de la fecha de alta", Toast.LENGTH_SHORT).show()
                 } else {
                     val formattedDate = dateFormat.format(selectedDate.time)
-                    editText.setText(formattedDate) // Actualizar el campo con la fecha seleccionada
+                    editText.setText(formattedDate)
 
-                    // Verificar si la fecha de renta es menor o igual a la fecha actual
                     val currentDate = Calendar.getInstance()
                     if (selectedDate.before(currentDate) || selectedDate == currentDate) {
-                        // Cambiar el estatus a "Inactivo"
-                        spinnerEstatus.setSelection(1) // Suponiendo que "Inactivo" está en la posición 1 del Spinner
+                        spinnerEstatus.setSelection(1)
                     }
                 }
             },
@@ -217,7 +208,6 @@ class EditCarFragment : Fragment() {
             calendar.get(Calendar.DAY_OF_MONTH)
         )
 
-        // Configurar la fecha mínima seleccionable (fecha de alta)
         val calendarFechaAlta = Calendar.getInstance().apply { time = fechaAlta }
         calendarFechaAlta.set(Calendar.HOUR_OF_DAY, 0)
         calendarFechaAlta.set(Calendar.MINUTE, 0)
@@ -235,8 +225,8 @@ class EditCarFragment : Fragment() {
         builder.setTitle("Seleccionar fuente de foto")
         builder.setItems(options) { _, which ->
             when (which) {
-                0 -> takePhoto() // Cámara
-                1 -> pickImageFromGallery() // Galería
+                0 -> takePhoto()
+                1 -> pickImageFromGallery()
             }
         }
         builder.show()
@@ -255,11 +245,9 @@ class EditCarFragment : Fragment() {
             return
         }
 
-        // Crear un archivo para guardar la foto
         val imageFile = File(requireContext().externalCacheDir, "${UUID.randomUUID()}.jpg")
 
-        // Asignar la URI para la foto
-        photoFile = imageFile // Asegúrate de asignar el archivo a photoFile
+        photoFile = imageFile
 
         newPhotoUri = FileProvider.getUriForFile(
             requireContext(),
@@ -306,8 +294,8 @@ class EditCarFragment : Fragment() {
             .setTitle("¿Cómo quieres eliminar este vehículo?")
             .setItems(options) { _, which ->
                 when (which) {
-                    0 -> deleteCarLogical()  // Eliminar lógicamente
-                    1 -> deleteCarPhysical() // Eliminar físicamente
+                    0 -> deleteCarLogical()
+                    1 -> deleteCarPhysical()
                 }
             }
             .show()
@@ -333,7 +321,6 @@ class EditCarFragment : Fragment() {
     }
 
     private fun saveChanges() {
-        // Validar que los campos no estén vacíos
         val Estatus = spinnerEstatus.selectedItem.toString()
         val fechaAlta = etFechaAlta.text.toString()
         val fechaRenta = etFechaRenta.text.toString()
@@ -345,7 +332,6 @@ class EditCarFragment : Fragment() {
             return
         }
 
-        // Crear el objeto Car con los datos actualizados
         val updatedCar = car.copy(
             Estatus = Estatus,
             Fecha_Alta = fechaAlta,
@@ -354,31 +340,24 @@ class EditCarFragment : Fragment() {
             Modelo = modelo
         )
 
-        // Verificar si la foto fue cambiada
         if (newPhotoUri != null) {
-            // Subir la nueva foto y obtener la URL
             uploadCarPhoto(updatedCar) { newPhotoUrl ->
-                // Actualizar la URL de la foto en el objeto updatedCar
                 val carWithNewPhoto = updatedCar.copy(FotoUrl = newPhotoUrl)
-
-                // Actualizar los datos del vehículo en Firebase
                 updateCar(carWithNewPhoto)
             }
         } else {
-            // Si no se cambió la foto, simplemente actualizamos el vehículo sin la foto
             updateCar(updatedCar)
         }
     }
 
     private fun uploadCarPhoto(car: Car, callback: (String) -> Unit) {
-        // Lógica para subir la foto a Firebase Storage
         val storageReference = FirebaseStorage.getInstance().reference.child("car_photos/${car.ID}.jpg")
 
         storageReference.putFile(newPhotoUri!!)
             .addOnSuccessListener { taskSnapshot ->
                 taskSnapshot.storage.downloadUrl.addOnSuccessListener { uri ->
                     val photoUrl = uri.toString()
-                    callback(photoUrl) // Llamamos al callback con la nueva URL
+                    callback(photoUrl)
                 }
             }
             .addOnFailureListener { e ->

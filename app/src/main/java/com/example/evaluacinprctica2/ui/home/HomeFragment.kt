@@ -19,6 +19,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.evaluacinprctica2.R
 import com.example.evaluacinprctica2.adapters.CarAdapter
 import com.example.evaluacinprctica2.models.Car
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
@@ -56,6 +57,11 @@ class HomeFragment : Fragment() {
         searchView = rootView.findViewById(R.id.searchView)
         videoView = rootView.findViewById(R.id.videoView)
         btnFilter = rootView.findViewById(R.id.btnFilter)
+        val fab: FloatingActionButton = rootView.findViewById(R.id.fab)
+
+        fab.setOnClickListener {
+            findNavController().navigate(R.id.nav_add_car)
+        }
 
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         carList = mutableListOf()
