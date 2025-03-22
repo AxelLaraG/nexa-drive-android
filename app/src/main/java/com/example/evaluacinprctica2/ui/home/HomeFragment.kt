@@ -116,14 +116,14 @@ class HomeFragment : Fragment() {
     }
 
     private fun openEditCarFragment(car: Car) {
-    // Crear un Bundle con los datos que quieras pasar al siguiente fragmento
-    val bundle = Bundle().apply {
-        putParcelable("car", car) // Pasa el objeto Car
-    }
+        // Crear un Bundle con los datos que quieras pasar al siguiente fragmento
+        val bundle = Bundle().apply {
+            putParcelable("car", car) // Pasa el objeto Car
+        }
 
-    // Navegar usando el NavController y pasar el Bundle con la acción
-    findNavController().navigate(R.id.action_home_to_editCar, bundle)
-}
+        // Navegar usando el NavController y pasar el Bundle con la acción
+        findNavController().navigate(R.id.action_home_to_editCar, bundle)
+    }
 
 
     private fun filterList(query: String?) {

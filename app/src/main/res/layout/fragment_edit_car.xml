@@ -66,6 +66,24 @@
             android:background="@android:drawable/editbox_background"
             android:layout_marginBottom="10dp"/>
 
+        <ImageView
+            android:id="@+id/imgCarPhoto"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:scaleType="centerCrop"
+            android:visibility="gone"
+            android:background="@android:color/darker_gray"
+            android:layout_marginBottom="10dp"/>
+
+        <Button
+            android:id="@+id/btnChangePhoto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Cambiar Foto"
+            android:backgroundTint="@android:color/holo_blue_dark"
+            android:textColor="@android:color/white"
+            android:layout_marginBottom="10dp"/>
+
         <!-- Botón para eliminar vehículo -->
         <Button
             android:id="@+id/btnDelete"
@@ -84,6 +102,15 @@
             android:backgroundTint="@android:color/black"
             android:textColor="@android:color/white"
             android:layout_marginBottom="10dp"/>
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:layout_centerInParent="true"
+            android:indeterminate="true" />
+
     </LinearLayout>
 </ScrollView>
 
