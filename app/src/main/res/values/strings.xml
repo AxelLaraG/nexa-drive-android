@@ -10,6 +10,7 @@
     <string name="title_login">Iniciar Sesión</string>
     <string name="ins_mail">Correo electrónico</string>
     <string name="ins_pass">Contraseña</string>
+    <string name="ins_name">Nombre</string>
     <string name="ins_confPass">Confirmar Contraseña</string>
     <string name="ins_reg">Registrar</string>
     <string name="btn_login">Iniciar Sesión</string>

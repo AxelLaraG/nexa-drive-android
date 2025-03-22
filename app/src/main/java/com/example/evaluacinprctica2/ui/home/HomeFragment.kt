@@ -19,6 +19,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.evaluacinprctica2.R
 import com.example.evaluacinprctica2.adapters.CarAdapter
 import com.example.evaluacinprctica2.models.Car
+import com.example.evaluacinprctica2.models.Rentas
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -36,6 +37,7 @@ class HomeFragment : Fragment() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var carAdapter: CarAdapter
     private lateinit var carList: MutableList<Car>
+    private lateinit var rentasMap: MutableMap<String,Rentas>
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
     private lateinit var searchView: SearchView
     private lateinit var videoView: VideoView
@@ -65,9 +67,10 @@ class HomeFragment : Fragment() {
 
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         carList = mutableListOf()
+        rentasMap = mutableMapOf()
 
         // Modificar el adaptador para que maneje clics
-        carAdapter = CarAdapter(carList) { car ->
+        carAdapter = CarAdapter(carList, rentasMap) { car ->
             openEditCarFragment(car)
         }
 
@@ -101,29 +104,51 @@ class HomeFragment : Fragment() {
 
     private fun loadCars() {
         val db = FirebaseFirestore.getInstance()
+
+        // Inicializamos rentasMap vacío
+        rentasMap = mutableMapOf()
+
+        // Primero cargamos los autos de la colección "vehiculos"
         db.collection("vehiculos")
             .get()
-            .addOnSuccessListener { documents ->
+            .addOnSuccessListener { carDocuments ->
+                // Limpiamos la lista de autos
                 carList.clear()
-                for (document in documents) {
-                    val car = document.toObject(Car::class.java)
+
+                // Obtenemos los autos y los agregamos a carList
+                for (carDocument in carDocuments) {
+                    val car = carDocument.toObject(Car::class.java)
                     carList.add(car)
                 }
 
-                carList.sortBy { it.ID }
+                // Luego, obtenemos las rentas de la colección "rents"
+                db.collection("rents")
+                    .get()
+                    .addOnSuccessListener { rentasDocuments ->
+                        // Mapeamos las rentas a cada auto por ID_Car
+                        for (rentaDocument in rentasDocuments) {
+                            val renta = rentaDocument.toObject(Rentas::class.java)
+                            rentasMap[renta.ID_Car] = renta
+                        }
 
-                carAdapter.updateList(carList)
-                recyclerView.adapter = carAdapter
-                carAdapter.notifyDataSetChanged()
+                        // Ahora, pasamos la lista de autos y el mapa de rentas al adaptador
+                        carList.sortBy { it.ID }
+                        carAdapter.updateList(carList, rentasMap)
+                        recyclerView.adapter = carAdapter
+                        carAdapter.notifyDataSetChanged()
 
-                swipeRefreshLayout.isRefreshing = false
+                        swipeRefreshLayout.isRefreshing = false
+                    }
+                    .addOnFailureListener { e ->
+                        Toast.makeText(requireContext(), "Error al cargar rentas: ${e.message}", Toast.LENGTH_LONG).show()
+                        swipeRefreshLayout.isRefreshing = false
+                    }
             }
             .addOnFailureListener { e ->
-                Toast.makeText(requireContext(), "Error al cargar datos: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(requireContext(), "Error al cargar vehículos: ${e.message}", Toast.LENGTH_LONG).show()
                 swipeRefreshLayout.isRefreshing = false
             }
     }
-
 
     private fun openEditCarFragment(car: Car) {
         // Crear un Bundle con los datos que quieras pasar al siguiente fragmento
@@ -135,14 +160,13 @@ class HomeFragment : Fragment() {
         findNavController().navigate(R.id.action_home_to_editCar, bundle)
     }
 
-
     private fun filterList(query: String?) {
         val filteredList = carList.filter { car ->
             car.ID.contains(query ?: "", true) ||
                     car.Modelo.contains(query ?: "", true) ||
                     car.Marca.contains(query ?: "", true)
         }
-        carAdapter.updateList(filteredList)
+        carAdapter.updateList(filteredList, rentasMap) // Pasar rentasMap también al adaptador
     }
 
     private fun showFilterDialog() {
@@ -151,10 +175,10 @@ class HomeFragment : Fragment() {
             .setTitle("Selecciona un filtro")
             .setItems(options) { _, which ->
                 when (which) {
-                    0 -> carAdapter.updateList(carList.filter { it.Estatus == "Activo" })
-                    1 -> carAdapter.updateList(carList.filter { it.Estatus == "Inactivo" })
-                    2 -> showDatePicker()
-                    3 -> loadCars()
+                    0 -> carAdapter.updateList(carList.filter { it.Estatus == "Activo" }, rentasMap)
+                    1 -> carAdapter.updateList(carList.filter { it.Estatus == "Inactivo" }, rentasMap)
+                    2 -> showDatePicker()  // El filtro de fecha sigue funcionando igual
+                    3 -> loadCars()        // Cargar todos los autos y rentas
                 }
             }
             .show()
@@ -174,7 +198,7 @@ class HomeFragment : Fragment() {
             carAdapter.updateList(carList.filter {
                 val vehiculoDate = LocalDate.parse(it.Fecha_Alta, formatter)
                 vehiculoDate.isAfter(selectedDate) || vehiculoDate.isEqual(selectedDate)
-            })
+            }, rentasMap)
         }, year, month, day)
 
         datePicker.show()

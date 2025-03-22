@@ -4,13 +4,12 @@ import android.os.Parcel
 import android.os.Parcelable
 import com.google.firebase.database.PropertyName
 
-data class Car(
+data class Rentas(
     @PropertyName("ID") var ID: String = "",
-    @PropertyName("Estatus") var Estatus: String="",
-    @PropertyName("Fecha_Alta") var Fecha_Alta: String = "",
-    @PropertyName("FotoUrl") var FotoUrl: String = "",
-    @PropertyName("Marca") var Marca: String = "",
-    @PropertyName("Modelo") var Modelo: String = ""
+    @PropertyName("ID_Car") var ID_Car: String="",
+    @PropertyName("Fecha_Renta") var Fecha_Renta: String = "",
+    @PropertyName("Fecha_Dev") var Fecha_Dev: String ="",
+    @PropertyName("ID_User") var ID_User: String = ""
 ) : Parcelable {
 
     constructor(parcel: Parcel) : this(
@@ -18,17 +17,15 @@ data class Car(
         parcel.readString() ?: "",
         parcel.readString() ?: "",
         parcel.readString() ?: "",
-        parcel.readString()?:"",
-        parcel.readString() ?: ""
+        parcel.readString()?:""
     )
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
         parcel.writeString(ID)
-        parcel.writeString(Estatus)
-        parcel.writeString(Fecha_Alta)
-        parcel.writeString(FotoUrl)
-        parcel.writeString(Marca)
-        parcel.writeString(Modelo)
+        parcel.writeString(ID_Car)
+        parcel.writeString(Fecha_Renta)
+        parcel.writeString(Fecha_Dev)
+        parcel.writeString(ID_User)
     }
 
     override fun describeContents(): Int = 0
@@ -43,4 +40,3 @@ data class Car(
         }
     }
 }
-

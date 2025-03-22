@@ -235,7 +235,6 @@ class AddCarFragment : Fragment() {
                         "Modelo" to modelo,
                         "Estatus" to "Activo",  // Por defecto, el vehículo será activo
                         "Fecha_Alta" to currentDate, // Timestamp actual como String
-                        "Fecha_Renta" to "",
                         "FotoUrl" to fotoUrl
                     )
 

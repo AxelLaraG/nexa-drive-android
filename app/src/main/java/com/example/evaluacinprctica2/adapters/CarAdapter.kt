@@ -11,18 +11,23 @@ import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.bumptech.glide.request.RequestOptions
 import com.example.evaluacinprctica2.R
 import com.example.evaluacinprctica2.models.Car
+import com.example.evaluacinprctica2.models.Rentas
 
-class CarAdapter(private var carList: List<Car>, private val onItemClick: (Car) -> Unit) :
-    RecyclerView.Adapter<CarAdapter.CarViewHolder>() {
+class CarAdapter(
+    private var carList: List<Car>,
+    private var rentasMap: Map<String, Rentas>, // Mapa de rentas asociadas a autos
+    private val onItemClick: (Car) -> Unit
+) : RecyclerView.Adapter<CarAdapter.CarViewHolder>() {
 
     class CarViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val tvId : TextView = view.findViewById(R.id.tvID)
+        val tvId: TextView = view.findViewById(R.id.tvID)
         val tvModelo: TextView = view.findViewById(R.id.tvModelo)
         val tvMarca: TextView = view.findViewById(R.id.tvMarca)
         val tvEstatus: TextView = view.findViewById(R.id.tvEstado)
         val ivCarImage: ImageView = view.findViewById(R.id.ivCarImage)
-        val tvFechaAlta : TextView = view.findViewById(R.id.tvFechaAlta)
-        val tvFechaRenta : TextView = view.findViewById(R.id.tvFechaRenta)
+        val tvFechaAlta: TextView = view.findViewById(R.id.tvFechaAlta)
+        val tvFechaRenta: TextView = view.findViewById(R.id.tvFechaRenta)
+        val tvFechaDev: TextView = view.findViewById(R.id.tvFechaDev)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CarViewHolder {
@@ -40,11 +45,16 @@ class CarAdapter(private var carList: List<Car>, private val onItemClick: (Car) 
         holder.tvEstatus.text = "Estatus: ${car.Estatus}"
         holder.tvFechaAlta.text = "Fecha Alta: ${car.Fecha_Alta}"
 
-        if (car.Fecha_Renta.isEmpty()) {
-            holder.tvFechaRenta.visibility = View.GONE // Ocultar si la fecha está vacía
+        // Obtener la renta asociada al auto
+        val renta = rentasMap[car.ID]
+        if (renta != null) {
+            holder.tvFechaRenta.visibility = View.VISIBLE
+            holder.tvFechaRenta.text = "Fecha Renta: ${renta.Fecha_Renta}"
+            holder.tvFechaDev.visibility = View.VISIBLE
+            holder.tvFechaDev.text = "Fecha Devolución: ${renta.Fecha_Dev}"
         } else {
-            holder.tvFechaRenta.visibility = View.VISIBLE // Mostrar si tiene fecha
-            holder.tvFechaRenta.text = "Fecha Renta: ${car.Fecha_Renta}"
+            holder.tvFechaRenta.visibility = View.GONE
+            holder.tvFechaDev.visibility = View.GONE
         }
 
         Glide.with(holder.itemView.context)
@@ -53,16 +63,15 @@ class CarAdapter(private var carList: List<Car>, private val onItemClick: (Car) 
             .into(holder.ivCarImage)
 
         holder.itemView.setOnClickListener {
-            onItemClick(car)  // Llamar al callback al hacer clic
+            onItemClick(car)
         }
     }
 
     override fun getItemCount(): Int = carList.size
 
-    fun updateList(newList: List<Car>) {
+    fun updateList(newList: List<Car>, newRentasMap: Map<String, Rentas>) {
         carList = newList
+        rentasMap = newRentasMap
         notifyDataSetChanged()
     }
 }
-
-
