@@ -27,6 +27,7 @@ import com.google.firebase.database.ValueEventListener
 import com.google.firebase.firestore.FirebaseFirestore
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 import java.util.Calendar
 
 class HomeFragment : Fragment() {
@@ -103,6 +104,8 @@ class HomeFragment : Fragment() {
                     carList.add(car)
                 }
 
+                carList.sortBy { it.ID }
+
                 carAdapter.updateList(carList)
                 recyclerView.adapter = carAdapter
                 carAdapter.notifyDataSetChanged()
@@ -114,6 +117,7 @@ class HomeFragment : Fragment() {
                 swipeRefreshLayout.isRefreshing = false
             }
     }
+
 
     private fun openEditCarFragment(car: Car) {
         // Crear un Bundle con los datos que quieras pasar al siguiente fragmento

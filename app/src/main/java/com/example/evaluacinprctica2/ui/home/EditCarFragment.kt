@@ -45,13 +45,12 @@ class EditCarFragment : Fragment() {
     private lateinit var btnDelete: Button
     private lateinit var btnSave : Button
     private val calendar = Calendar.getInstance()
-    private val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     private lateinit var imgCarPhoto: ImageView
     private lateinit var btnChangePhoto: Button
     private var newPhotoUri: Uri? = null
     private var currentPhotoUrl: String = ""
     private val REQUEST_IMAGE_PICK = 1001
-    private val REQUEST_TAKE_PHOTO = 1002
     private var photoFile: File? = null
     private lateinit var progressBar: ProgressBar
     private val CAMERA_REQUEST_CODE = 2000
@@ -120,7 +119,21 @@ class EditCarFragment : Fragment() {
         }
 
         etFechaRenta.setOnClickListener {
-            showDatePickerDialog(etFechaRenta)
+            val fechaAltaString = etFechaAlta.text.toString()
+            if (fechaAltaString.isEmpty()) {
+                Toast.makeText(requireContext(), "Primero selecciona la fecha de alta", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            // Convierte la fecha de alta a un objeto Date
+            val fechaAlta = dateFormat.parse(fechaAltaString)
+
+            if (fechaAlta != null) {
+                // Abre el DatePicker para la fecha de renta
+                showDatePickerDialog(etFechaRenta, fechaAlta)
+            } else {
+                Toast.makeText(requireContext(), "Fecha de alta inválida", Toast.LENGTH_SHORT).show()
+            }
         }
 
         btnDelete.setOnClickListener {
@@ -131,13 +144,6 @@ class EditCarFragment : Fragment() {
             showDatePickerDialog { year, month, dayOfMonth ->
                 calendar.set(year, month, dayOfMonth)
                 etFechaAlta.setText(dateFormat.format(calendar.time))
-            }
-        }
-
-        etFechaRenta.setOnClickListener {
-            showDatePickerDialog { year, month, dayOfMonth ->
-                calendar.set(year, month, dayOfMonth)
-                etFechaRenta.setText(dateFormat.format(calendar.time))
             }
         }
 
@@ -182,6 +188,46 @@ class EditCarFragment : Fragment() {
         }
     }
 
+    private fun showDatePickerDialog(editText: EditText, fechaAlta: Date) {
+        val calendar = Calendar.getInstance()
+        val datePickerDialog = DatePickerDialog(
+            requireContext(),
+            { _, year, month, dayOfMonth ->
+                val selectedDate = Calendar.getInstance().apply {
+                    set(year, month, dayOfMonth, 0, 0, 0) // Asegurarse de establecer la hora a 00:00:00
+                }
+
+                // Verificar si la fecha seleccionada es anterior a la fecha de alta
+                if (selectedDate.before(Calendar.getInstance().apply { time = fechaAlta })) {
+                    Toast.makeText(requireContext(), "La fecha de renta no puede ser antes de la fecha de alta", Toast.LENGTH_SHORT).show()
+                } else {
+                    val formattedDate = dateFormat.format(selectedDate.time)
+                    editText.setText(formattedDate) // Actualizar el campo con la fecha seleccionada
+
+                    // Verificar si la fecha de renta es menor o igual a la fecha actual
+                    val currentDate = Calendar.getInstance()
+                    if (selectedDate.before(currentDate) || selectedDate == currentDate) {
+                        // Cambiar el estatus a "Inactivo"
+                        spinnerEstatus.setSelection(1) // Suponiendo que "Inactivo" está en la posición 1 del Spinner
+                    }
+                }
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        )
+
+        // Configurar la fecha mínima seleccionable (fecha de alta)
+        val calendarFechaAlta = Calendar.getInstance().apply { time = fechaAlta }
+        calendarFechaAlta.set(Calendar.HOUR_OF_DAY, 0)
+        calendarFechaAlta.set(Calendar.MINUTE, 0)
+        calendarFechaAlta.set(Calendar.SECOND, 0)
+        calendarFechaAlta.set(Calendar.MILLISECOND, 0)
+
+        datePickerDialog.datePicker.minDate = calendarFechaAlta.timeInMillis // Establecer la fecha mínima
+
+        datePickerDialog.show()
+    }
 
     private fun showPhotoOptionsDialog() {
         val options = arrayOf("Tomar Foto", "Seleccionar de la Galería")
@@ -360,7 +406,7 @@ class EditCarFragment : Fragment() {
         val datePickerDialog = DatePickerDialog(
             requireContext(),
             { _, year, month, dayOfMonth ->
-                val date = "$dayOfMonth/${month + 1}/$year"
+                val date = "$year-${month + 1}-$dayOfMonth"
                 editText.setText(date)
             },
             calendar.get(Calendar.YEAR),

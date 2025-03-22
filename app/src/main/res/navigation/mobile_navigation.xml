@@ -16,12 +16,6 @@
     </fragment>
 
     <fragment
-        android:id="@+id/nav_gallery"
-        android:name="com.example.evaluacinprctica2.ui.cuenta.GalleryFragment"
-        android:label="@string/menu_gallery"
-        tools:layout="@layout/fragment_cuenta" />
-
-    <fragment
         android:id="@+id/nav_slideshow"
         android:name="com.example.evaluacinprctica2.ui.creditos.SlideshowFragment"
         android:label="@string/menu_slideshow"

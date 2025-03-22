@@ -39,7 +39,7 @@ class MainActivity : AppCompatActivity() {
 
         appBarConfiguration = AppBarConfiguration(
             setOf(
-                R.id.nav_home, R.id.nav_cuenta, R.id.nav_creditos, R.id.nav_logout
+                R.id.nav_home, R.id.nav_creditos, R.id.nav_logout
             ), drawerLayout
         )
 
@@ -60,9 +60,6 @@ class MainActivity : AppCompatActivity() {
             when (menuItem.itemId) {
                 R.id.nav_home -> {
                     Snackbar.make(binding.root, "Inicio seleccionado", Snackbar.LENGTH_SHORT).show()
-                }
-                R.id.nav_cuenta -> {
-                    Snackbar.make(binding.root, "Cuenta seleccionada", Snackbar.LENGTH_SHORT).show()
                 }
                 R.id.nav_creditos -> {
                     Snackbar.make(binding.root, "Créditos seleccionados", Snackbar.LENGTH_SHORT).show()
