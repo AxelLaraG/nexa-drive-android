@@ -94,6 +94,16 @@
             android:background="@android:drawable/editbox_background"
             android:layout_marginBottom="10dp"/>
 
+        <Button
+            android:id="@+id/btnDeleteRent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Eliminar renta"
+            android:backgroundTint="@android:color/holo_red_light"
+            android:textColor="@android:color/white"
+            android:layout_marginBottom="10dp"
+            android:visibility="gone"/>
+
         <ImageView
             android:id="@+id/imgCarPhoto"
             android:layout_width="match_parent"

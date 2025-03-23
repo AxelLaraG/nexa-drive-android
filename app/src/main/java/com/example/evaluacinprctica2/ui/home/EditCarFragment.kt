@@ -60,6 +60,7 @@ class EditCarFragment : Fragment() {
     private lateinit var btnSave : Button
     private val calendar = Calendar.getInstance()
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    private lateinit var btnDeleteRent: Button
 
     private lateinit var imgCarPhoto: ImageView
     private lateinit var btnChangePhoto: Button
@@ -100,6 +101,7 @@ class EditCarFragment : Fragment() {
         etMarca = rootView.findViewById(R.id.etMarca)
         etModelo = rootView.findViewById(R.id.etModelo)
 
+        btnDeleteRent = rootView.findViewById(R.id.btnDeleteRent)
         btnDelete = rootView.findViewById(R.id.btnDelete)
         btnSave = rootView.findViewById(R.id.btnSave)
         progressBar = rootView.findViewById(R.id.progressBar)
@@ -126,6 +128,10 @@ class EditCarFragment : Fragment() {
 
         btnDelete.setOnClickListener {
             showDeleteDialog()
+        }
+
+        btnDeleteRent.setOnClickListener{
+            deleteRent()
         }
 
         btnSave.setOnClickListener {
@@ -166,6 +172,42 @@ class EditCarFragment : Fragment() {
         }
     }
 
+    private fun deleteRent() {
+        // Obtener el ID de la renta seleccionada
+        val rentaId = obtenerIDRentaSeleccionada()
+
+        // Verificar si se obtuvo un ID válido
+        if (rentaId.isNullOrEmpty()) {
+            Toast.makeText(requireContext(), "No se encontró la ID de la renta", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Mostrar un diálogo de confirmación antes de eliminar
+        AlertDialog.Builder(requireContext())
+            .setTitle("Eliminar Renta")
+            .setMessage("¿Estás seguro de que deseas eliminar esta renta?")
+            .setPositiveButton("Eliminar") { dialog, _ ->
+                // Eliminar la renta de Firestore
+                val db = FirebaseFirestore.getInstance()
+                db.collection("Rents")
+                    .document(rentaId)
+                    .delete()
+                    .addOnSuccessListener {
+                        Toast.makeText(requireContext(), "Renta eliminada con éxito", Toast.LENGTH_SHORT).show()
+                        // Recargar la lista de rentas después de eliminar
+                        validarRentas()
+                    }
+                    .addOnFailureListener { e ->
+                        Toast.makeText(requireContext(), "Error al eliminar la renta: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancelar") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
+    }
+
     private fun loadRentedDates() {
         val db = FirebaseFirestore.getInstance()
         db.collection("Rents")
@@ -196,20 +238,23 @@ class EditCarFragment : Fragment() {
                     etFechaRenta.visibility = View.VISIBLE
                     etFechaDev.visibility = View.VISIBLE
                     spinnerUsr.visibility = View.VISIBLE
+                    btnDeleteRent.visibility = View.GONE
 
                     etFechaDev.setText("")
                     etFechaRenta.setText("")
 
-                    cargarUsuarios()  // Asegurar que los usuarios están cargados
+                    cargarUsuarios()
                     eventosRentas()
                 } else if (selectedItem == "Seleccione una opción") {
                     etFechaRenta.visibility = View.GONE
                     etFechaDev.visibility = View.GONE
                     spinnerUsr.visibility = View.GONE
+                    btnDeleteRent.visibility = View.GONE
                 } else {
                     etFechaRenta.visibility = View.VISIBLE
                     etFechaDev.visibility = View.VISIBLE
                     spinnerUsr.visibility = View.VISIBLE
+                    btnDeleteRent.visibility = View.VISIBLE
 
                     cargarUsuarios()  // Asegurar que el spinner tiene datos antes de seleccionarlo
                     obtenerDatosRentaSeleccionada()
@@ -405,14 +450,11 @@ class EditCarFragment : Fragment() {
     private fun showDatePickerDev(editText: EditText, fechaRenta: Date) {
         val calendar = Calendar.getInstance()
 
-        // Buscar la próxima fecha de renta (la primera fecha de renta posterior a la fecha de la renta actual)
         val nextRentDate = findNextRentDate(fechaRenta)
 
-        // Restar un día a la fecha de la próxima renta
         val calendarNextRent = Calendar.getInstance().apply { time = nextRentDate }
         calendarNextRent.add(Calendar.DAY_OF_YEAR, -1)
 
-        // Configurar el DatePickerDialog
         val datePickerDialog = DatePickerDialog(
             requireContext(),
             { _, year, month, dayOfMonth ->
@@ -422,13 +464,11 @@ class EditCarFragment : Fragment() {
 
                 val selectedTime = selectedDate.timeInMillis
 
-                // Verificar si la fecha seleccionada está dentro de las fechas ocupadas
                 val isDateOccupied = rentedDates.any { (startDate, endDate) ->
                     selectedTime in startDate..endDate
                 }
 
                 if (isDateOccupied) {
-                    // Si la fecha está ocupada, encontrar la fecha más cercana disponible
                     val closestDate = findClosestAvailableDate(selectedDate)
                     val formattedDate = dateFormat.format(closestDate.time)
                     editText.setText(formattedDate)
@@ -453,7 +493,6 @@ class EditCarFragment : Fragment() {
             calendar.get(Calendar.DAY_OF_MONTH)
         )
 
-        // Crear la lista de fechas bloqueadas
         val blockedDates = mutableListOf<Long>()
         rentedDates.forEach { (startDate, endDate) ->
             val blockedCalendar = Calendar.getInstance().apply { timeInMillis = startDate }
@@ -463,7 +502,6 @@ class EditCarFragment : Fragment() {
             }
         }
 
-        // Modificar el DatePicker para que no se pueda seleccionar las fechas ocupadas
         datePickerDialog.datePicker.setOnDateChangedListener { _, year, month, dayOfMonth ->
             val selectedDate = Calendar.getInstance().apply {
                 set(year, month, dayOfMonth)
@@ -473,38 +511,30 @@ class EditCarFragment : Fragment() {
             }
         }
 
-        // Establecer la fecha mínima y máxima para la fecha de devolución
         val calendarFechaRenta = Calendar.getInstance().apply { time = fechaRenta }
         calendarFechaRenta.set(Calendar.HOUR_OF_DAY, 0)
         calendarFechaRenta.set(Calendar.MINUTE, 0)
         calendarFechaRenta.set(Calendar.SECOND, 0)
         calendarFechaRenta.set(Calendar.MILLISECOND, 0)
 
-        // Establecer la fecha mínima en el DatePicker (fecha de renta)
         datePickerDialog.datePicker.minDate = calendarFechaRenta.timeInMillis
 
-        // Establecer la fecha máxima en el DatePicker (próxima fecha de renta menos un día)
         datePickerDialog.datePicker.maxDate = calendarNextRent.timeInMillis
 
-        // Mostrar el DatePicker
         datePickerDialog.show()
     }
 
-    // Función para encontrar la fecha más cercana disponible si la seleccionada está ocupada
     private fun findClosestAvailableDate(selectedDate: Calendar): Calendar {
         val closestDate = selectedDate.clone() as Calendar
 
-        // Buscar la fecha más cercana disponible
         while (rentedDates.any { (start, end) ->
                 closestDate.timeInMillis in start..end
             }) {
-            // Si la fecha está ocupada, sumamos un día y verificamos nuevamente
             closestDate.add(Calendar.DATE, 1)
         }
 
         return closestDate
     }
-
 
     private fun findNextRentDate(fechaRenta: Date): Date {
         val rentedDatesSorted = rentedDates
@@ -710,19 +740,42 @@ class EditCarFragment : Fragment() {
             return
         }
 
-        if (spinnerRentas.selectedItem.toString() == "Nueva Renta"){
-            if (etFechaRenta.text.toString().isEmpty() || etFechaDev.text.toString().isEmpty() || spinnerUsr.selectedItem.toString().isEmpty() || spinnerUsr.selectedItem.toString() == "Seleccione un usuario"){
+        if (spinnerRentas.selectedItem.toString() == "Nueva Renta") {
+            if (etFechaRenta.text.toString().isEmpty() || etFechaDev.text.toString().isEmpty() ||
+                spinnerUsr.selectedItem.toString().isEmpty() || spinnerUsr.selectedItem.toString() == "Seleccione un usuario") {
                 Toast.makeText(requireContext(), "Por favor, completa todos los campos", Toast.LENGTH_SHORT).show()
                 return
             }
+
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd")
+            val fechaRenta = dateFormat.parse(etFechaRenta.text.toString())
+            val fechaEntrega = dateFormat.parse(etFechaDev.text.toString())
+
+            if (fechaRenta.after(fechaEntrega)) {
+                Toast.makeText(requireContext(), "La fecha de renta no puede ser posterior a la fecha de entrega", Toast.LENGTH_SHORT).show()
+                return
+            }
+
             createRenta()
-        } else if (spinnerRentas.selectedItem.toString() != "Seleccione una opción"){
-            if (etFechaRenta.text.toString().isEmpty() || etFechaDev.text.toString().isEmpty() || spinnerUsr.selectedItem.toString().isEmpty() || spinnerUsr.selectedItem.toString() == "Seleccione un usuario"){
+        } else if (spinnerRentas.selectedItem.toString() != "Seleccione una opción") {
+            if (etFechaRenta.text.toString().isEmpty() || etFechaDev.text.toString().isEmpty() ||
+                spinnerUsr.selectedItem.toString().isEmpty() || spinnerUsr.selectedItem.toString() == "Seleccione un usuario") {
                 Toast.makeText(requireContext(), "Por favor, completa todos los campos", Toast.LENGTH_SHORT).show()
                 return
             }
+
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd")
+            val fechaRenta = dateFormat.parse(etFechaRenta.text.toString())
+            val fechaEntrega = dateFormat.parse(etFechaDev.text.toString())
+
+            if (fechaRenta.after(fechaEntrega)) {
+                Toast.makeText(requireContext(), "La fecha de renta no puede ser posterior a la fecha de entrega", Toast.LENGTH_SHORT).show()
+                return
+            }
+
             updateRenta(obtenerIDRentaSeleccionada().toString())
         }
+
 
         btnSave.isEnabled = false
         btnDelete.isEnabled = false
