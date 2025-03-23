@@ -480,10 +480,9 @@ class EditCarFragment : Fragment() {
                     editText.setText(formattedDate)
 
                     val currentDate = Calendar.getInstance()
-                    if (selectedDate.before(currentDate) || selectedDate == currentDate) {
+                    if (selectedDate.before(currentDate) || (Calendar.getInstance().apply { time = fechaRenta }).after(currentDate)){
                         spinnerEstatus.setSelection(0)
-                    }
-                    if (selectedDate.after(currentDate) && (currentDate.before(Calendar.getInstance().apply { time = fechaRenta }))){
+                    } else if (selectedDate.after(currentDate) || selectedDate.equals(currentDate)){
                         spinnerEstatus.setSelection(1)
                     }
                 }

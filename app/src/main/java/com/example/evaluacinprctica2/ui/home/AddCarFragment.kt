@@ -137,8 +137,8 @@ class AddCarFragment : Fragment() {
             .setTitle("Seleccionar Fuente de Imagen")
             .setItems(options) { _, which ->
                 when (which) {
-                    0 -> openCamera() // Si selecciona la cámara
-                    1 -> openGallery() // Si selecciona la galería
+                    0 -> openCamera()
+                    1 -> openGallery()
                 }
             }
             .show()
@@ -185,7 +185,6 @@ class AddCarFragment : Fragment() {
             return
         }
 
-        // Muestra el ProgressBar y deshabilita los botones
         progressBar.visibility = View.VISIBLE
         binding.btnGuardar.isEnabled = false
         binding.btnSeleccionarFoto.isEnabled = false
@@ -196,13 +195,12 @@ class AddCarFragment : Fragment() {
             inputMethodManager.hideSoftInputFromWindow(it.windowToken, 0)
         }
 
-        // Subir la imagen a Firebase Storage
         val storageRef = FirebaseStorage.getInstance().reference.child("car_images/${UUID.randomUUID()}.jpg")
         storageRef.putFile(imageUri!!)
             .addOnSuccessListener {
                 storageRef.downloadUrl.addOnSuccessListener { uri ->
                     val fotoUrl = uri.toString()
-                    guardarDatosEnFirestore(marca, modelo, fotoUrl)  // Llama a la función que guarda en Firestore
+                    guardarDatosEnFirestore(marca, modelo, fotoUrl)
                 }
             }
             .addOnFailureListener {
@@ -216,7 +214,6 @@ class AddCarFragment : Fragment() {
     private fun guardarDatosEnFirestore(marca: String, modelo: String, fotoUrl: String) {
         val db = FirebaseFirestore.getInstance()
 
-        // Obtener la referencia del contador de IDs
         val counterRef = db.collection("config").document("vehiculo_counter")
 
         counterRef.get()
@@ -228,13 +225,12 @@ class AddCarFragment : Fragment() {
                     val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
                     val currentDate = sdf.format(Date())
 
-                    // Crear el objeto vehículo con el nuevo ID numérico
                     val vehiculo = hashMapOf(
                         "ID" to newID.toString(),
                         "Marca" to marca,
                         "Modelo" to modelo,
-                        "Estatus" to "Activo",  // Por defecto, el vehículo será activo
-                        "Fecha_Alta" to currentDate, // Timestamp actual como String
+                        "Estatus" to "Activo",
+                        "Fecha_Alta" to currentDate,
                         "FotoUrl" to fotoUrl
                     )
 
@@ -246,8 +242,9 @@ class AddCarFragment : Fragment() {
                                     progressBar.visibility = View.GONE
                                     binding.btnGuardar.isEnabled = true
                                     binding.btnSeleccionarFoto.isEnabled = true
-                                    showSuccessDialog("Vehículo guardado correctamente")
-                                    findNavController().navigate(R.id.action_addCarFragment_to_homeFragment)
+                                    showSuccessDialog("Vehículo guardado correctamente") {
+                                        findNavController().popBackStack(R.id.nav_home, false)
+                                    }
                                 }
                                 .addOnFailureListener { e ->
                                     showErrorDialog("Error al actualizar contador: ${e.message}")
@@ -277,13 +274,14 @@ class AddCarFragment : Fragment() {
             .show()
     }
 
-    private fun showSuccessDialog(message: String) {
+    private fun showSuccessDialog(message: String, onDismiss: () -> Unit) {
         AlertDialog.Builder(requireContext())
             .setTitle("Éxito")
             .setMessage(message)
-            .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
+            .setPositiveButton("OK") { dialog, _ ->
+                dialog.dismiss()
+                onDismiss()
+            }
             .show()
     }
-
 }
-

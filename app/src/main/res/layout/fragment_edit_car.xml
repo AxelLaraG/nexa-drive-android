@@ -11,6 +11,13 @@
         android:padding="16dp"
         android:gravity="center">
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Seleccione o cree una cita"
+            android:textSize="16sp"
+            android:layout_marginBottom="16dp"/>
+
         <Spinner
             android:id="@+id/spinnerRentas"
             android:layout_width="match_parent"
@@ -52,12 +59,36 @@
             android:layout_marginBottom="10dp"
             android:visibility="gone"/>
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Seleccione el estatus"
+            android:textSize="16sp"
+            android:layout_marginBottom="16dp"/>
+
         <!-- Estatus (Spinner) -->
         <Spinner
             android:id="@+id/spinnerEstatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="10dp"/>
+
+        <Button
+            android:id="@+id/btnDeleteRent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Eliminar renta"
+            android:backgroundTint="@android:color/holo_red_light"
+            android:textColor="@android:color/white"
+            android:layout_marginBottom="10dp"
+            android:visibility="gone"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Seleccione la fecha de alta"
+            android:textSize="16sp"
+            android:layout_marginBottom="16dp"/>
 
         <!-- Fecha Alta -->
         <EditText
@@ -72,6 +103,13 @@
             android:background="@android:drawable/editbox_background"
             android:layout_marginBottom="10dp"/>
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Coloque la marca"
+            android:textSize="16sp"
+            android:layout_marginBottom="16dp"/>
+
         <!-- Marca -->
         <EditText
             android:id="@+id/etMarca"
@@ -83,6 +121,13 @@
             android:background="@android:drawable/editbox_background"
             android:layout_marginBottom="10dp"/>
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Coloque el modelo"
+            android:textSize="16sp"
+            android:layout_marginBottom="16dp"/>
+
         <!-- Modelo -->
         <EditText
             android:id="@+id/etModelo"
@@ -93,16 +138,6 @@
             android:padding="10dp"
             android:background="@android:drawable/editbox_background"
             android:layout_marginBottom="10dp"/>
-
-        <Button
-            android:id="@+id/btnDeleteRent"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Eliminar renta"
-            android:backgroundTint="@android:color/holo_red_light"
-            android:textColor="@android:color/white"
-            android:layout_marginBottom="10dp"
-            android:visibility="gone"/>
 
         <ImageView
             android:id="@+id/imgCarPhoto"
