@@ -32,6 +32,8 @@ import com.bumptech.glide.Glide
 import com.example.evaluacinprctica2.R
 import com.example.evaluacinprctica2.models.Car
 import com.example.evaluacinprctica2.models.Rentas
+import com.google.android.material.datepicker.CalendarConstraints
+import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.storage.FirebaseStorage
@@ -42,6 +44,7 @@ import java.util.*
 class EditCarFragment : Fragment() {
 
     private lateinit var car: Car
+    private var rentedDates: MutableList<Pair<Long, Long>> = mutableListOf()
 
     private lateinit var spinnerEstatus: Spinner
     private lateinit var spinnerUsr: Spinner
@@ -106,6 +109,7 @@ class EditCarFragment : Fragment() {
 
         Glide.with(this).load(currentPhotoUrl).into(imgCarPhoto)
 
+        loadRentedDates()
         cargarElementos()
         selector()
 
@@ -162,6 +166,27 @@ class EditCarFragment : Fragment() {
         }
     }
 
+    private fun loadRentedDates() {
+        val db = FirebaseFirestore.getInstance()
+        db.collection("Rents")
+            .whereEqualTo("ID_Auto", car.ID)
+            .get()
+            .addOnSuccessListener { querySnapshot ->
+                rentedDates.clear()
+                for (doc in querySnapshot.documents) {
+                    val rent = doc.toObject(Rentas::class.java)
+                    val fechaRenta = rent?.Fecha_Renta
+                    val fechaDevolucion = rent?.Fecha_Dev
+
+                    if (fechaRenta != null && fechaDevolucion != null) {
+                        val startDate = dateFormat.parse(fechaRenta)?.time ?: 0
+                        val endDate = dateFormat.parse(fechaDevolucion)?.time ?: 0
+                        rentedDates.add(Pair(startDate, endDate))
+                    }
+                }
+            }
+    }
+
     private fun selector() {
         spinnerRentas.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parentView: AdapterView<*>, view: View?, position: Int, id: Long) {
@@ -214,18 +239,20 @@ class EditCarFragment : Fragment() {
                     val fechaDevolucion = document.getString("Fecha_Dev") ?: ""
                     val usuarioId = document.getString("ID_User") ?: ""
 
-                    // Actualizar los campos en la vista
+                    // Actualizamos los campos de la interfaz con los datos obtenidos
                     etFechaRenta.setText(fechaRenta)
                     etFechaDev.setText(fechaDevolucion)
 
+                    // Si el spinner de usuarios está vacío o no se ha inicializado, no hacemos nada
                     if (spinnerUsr.adapter == null) {
                         return@addOnSuccessListener
                     }
 
-                    val adapter = spinnerUsr.adapter as ArrayAdapter<String>
-                    val position = adapter.getPosition(usuarioId)
+                    // Actualizamos la selección del usuario en el spinner de usuarios
+                    val adapter = spinnerUsr.adapter as? ArrayAdapter<String>
+                    val position = adapter?.getPosition(usuarioId)
 
-                    if (position >= 0) {
+                    if (position != null && position >= 0) {
                         spinnerUsr.setSelection(position)
                     }
                 }
@@ -302,19 +329,21 @@ class EditCarFragment : Fragment() {
             .get()
             .addOnSuccessListener { querySnapshot ->
                 val rentasList = mutableListOf<String>()
-                val rentasMap = mutableMapOf<String, String>() // Mapa para asociar usuario con ID_Renta
+                val rentasMap = mutableMapOf<String, String>() // Mapa para almacenar las rentas por usuario
 
                 rentasList.add("Seleccione una opción")
                 rentasList.add("Nueva Renta")
 
+                // Recorremos todas las rentas y las agregamos a la lista y el mapa
                 for (doc in querySnapshot.documents) {
                     val rent = doc.toObject(Rentas::class.java)
                     val usuario = rent?.ID_User
-                    val rentaId = doc.id  // ID de la renta (documento de Firestore)
+                    val rentaId = doc.id  // ID único de la renta
 
                     if (usuario != null) {
-                        rentasList.add(usuario)
-                        rentasMap[usuario] = rentaId  // Asociamos el nombre de usuario con el ID de la renta
+                        val rentInfo = "$usuario - ${rentaId}"  // Mostrar nombre de usuario y ID de la renta
+                        rentasList.add(rentInfo)
+                        rentasMap[rentInfo] = rentaId  // Guardamos el ID de la renta en el mapa
                     }
                 }
 
@@ -334,8 +363,10 @@ class EditCarFragment : Fragment() {
 
     private fun obtenerIDRentaSeleccionada(): String? {
         val rentasMap = spinnerRentas.tag as? Map<String, String>
-        val usuarioSeleccionado = spinnerRentas.selectedItem.toString()
-        return rentasMap?.get(usuarioSeleccionado)
+        val selectedItem = spinnerRentas.selectedItem?.toString()
+
+        // Aquí obtenemos la ID de la renta correspondiente al item seleccionado
+        return rentasMap?.get(selectedItem)
     }
 
     private fun cargarUsuarios(){
@@ -373,6 +404,15 @@ class EditCarFragment : Fragment() {
 
     private fun showDatePickerDev(editText: EditText, fechaRenta: Date) {
         val calendar = Calendar.getInstance()
+
+        // Buscar la próxima fecha de renta (la primera fecha de renta posterior a la fecha de la renta actual)
+        val nextRentDate = findNextRentDate(fechaRenta)
+
+        // Restar un día a la fecha de la próxima renta
+        val calendarNextRent = Calendar.getInstance().apply { time = nextRentDate }
+        calendarNextRent.add(Calendar.DAY_OF_YEAR, -1)
+
+        // Configurar el DatePickerDialog
         val datePickerDialog = DatePickerDialog(
             requireContext(),
             { _, year, month, dayOfMonth ->
@@ -380,7 +420,20 @@ class EditCarFragment : Fragment() {
                     set(year, month, dayOfMonth, 0, 0, 0)
                 }
 
-                if (selectedDate.before(Calendar.getInstance().apply { time = fechaRenta })) {
+                val selectedTime = selectedDate.timeInMillis
+
+                // Verificar si la fecha seleccionada está dentro de las fechas ocupadas
+                val isDateOccupied = rentedDates.any { (startDate, endDate) ->
+                    selectedTime in startDate..endDate
+                }
+
+                if (isDateOccupied) {
+                    // Si la fecha está ocupada, encontrar la fecha más cercana disponible
+                    val closestDate = findClosestAvailableDate(selectedDate)
+                    val formattedDate = dateFormat.format(closestDate.time)
+                    editText.setText(formattedDate)
+                    Toast.makeText(requireContext(), "La fecha seleccionada está ocupada, seleccionamos la fecha más cercana.", Toast.LENGTH_SHORT).show()
+                } else if (selectedDate.before(Calendar.getInstance().apply { time = fechaRenta })) {
                     Toast.makeText(requireContext(), "La fecha de devolución no puede ser antes de la fecha de renta", Toast.LENGTH_SHORT).show()
                 } else {
                     val formattedDate = dateFormat.format(selectedDate.time)
@@ -400,15 +453,71 @@ class EditCarFragment : Fragment() {
             calendar.get(Calendar.DAY_OF_MONTH)
         )
 
-        val calendarFechaAlta = Calendar.getInstance().apply { time = fechaRenta }
-        calendarFechaAlta.set(Calendar.HOUR_OF_DAY, 0)
-        calendarFechaAlta.set(Calendar.MINUTE, 0)
-        calendarFechaAlta.set(Calendar.SECOND, 0)
-        calendarFechaAlta.set(Calendar.MILLISECOND, 0)
+        // Crear la lista de fechas bloqueadas
+        val blockedDates = mutableListOf<Long>()
+        rentedDates.forEach { (startDate, endDate) ->
+            val blockedCalendar = Calendar.getInstance().apply { timeInMillis = startDate }
+            while (blockedCalendar.timeInMillis <= endDate) {
+                blockedDates.add(blockedCalendar.timeInMillis)
+                blockedCalendar.add(Calendar.DATE, 1)
+            }
+        }
 
-        datePickerDialog.datePicker.minDate = calendarFechaAlta.timeInMillis // Establecer la fecha mínima
+        // Modificar el DatePicker para que no se pueda seleccionar las fechas ocupadas
+        datePickerDialog.datePicker.setOnDateChangedListener { _, year, month, dayOfMonth ->
+            val selectedDate = Calendar.getInstance().apply {
+                set(year, month, dayOfMonth)
+            }
+            if (blockedDates.contains(selectedDate.timeInMillis)) {
+                Toast.makeText(requireContext(), "Fecha ocupada", Toast.LENGTH_SHORT).show()
+            }
+        }
 
+        // Establecer la fecha mínima y máxima para la fecha de devolución
+        val calendarFechaRenta = Calendar.getInstance().apply { time = fechaRenta }
+        calendarFechaRenta.set(Calendar.HOUR_OF_DAY, 0)
+        calendarFechaRenta.set(Calendar.MINUTE, 0)
+        calendarFechaRenta.set(Calendar.SECOND, 0)
+        calendarFechaRenta.set(Calendar.MILLISECOND, 0)
+
+        // Establecer la fecha mínima en el DatePicker (fecha de renta)
+        datePickerDialog.datePicker.minDate = calendarFechaRenta.timeInMillis
+
+        // Establecer la fecha máxima en el DatePicker (próxima fecha de renta menos un día)
+        datePickerDialog.datePicker.maxDate = calendarNextRent.timeInMillis
+
+        // Mostrar el DatePicker
         datePickerDialog.show()
+    }
+
+    // Función para encontrar la fecha más cercana disponible si la seleccionada está ocupada
+    private fun findClosestAvailableDate(selectedDate: Calendar): Calendar {
+        val closestDate = selectedDate.clone() as Calendar
+
+        // Buscar la fecha más cercana disponible
+        while (rentedDates.any { (start, end) ->
+                closestDate.timeInMillis in start..end
+            }) {
+            // Si la fecha está ocupada, sumamos un día y verificamos nuevamente
+            closestDate.add(Calendar.DATE, 1)
+        }
+
+        return closestDate
+    }
+
+
+    private fun findNextRentDate(fechaRenta: Date): Date {
+        val rentedDatesSorted = rentedDates
+            .filter { (start, _) -> start > fechaRenta.time }
+            .sortedBy { (start, _) -> start }
+
+        return if (rentedDatesSorted.isNotEmpty()) {
+            val nextRentStart = rentedDatesSorted.first().first
+            Calendar.getInstance().apply { timeInMillis = nextRentStart }.time
+        } else {
+            // Si no hay rentas posteriores, devolvemos una fecha muy lejana
+            Calendar.getInstance().apply { add(Calendar.YEAR, 1) }.time
+        }
     }
 
     private fun showDatePickerDialog(editText: EditText, fechaAlta: Date) {
@@ -420,15 +529,32 @@ class EditCarFragment : Fragment() {
                     set(year, month, dayOfMonth, 0, 0, 0)
                 }
 
-                if (selectedDate.before(Calendar.getInstance().apply { time = fechaAlta })) {
-                    Toast.makeText(requireContext(), "La fecha de renta no puede ser antes de la fecha de alta", Toast.LENGTH_SHORT).show()
-                } else {
-                    val formattedDate = dateFormat.format(selectedDate.time)
-                    editText.setText(formattedDate)
+                val selectedDateMillis = selectedDate.timeInMillis
 
-                    val currentDate = Calendar.getInstance()
-                    if (selectedDate.before(currentDate) || selectedDate == currentDate) {
-                        spinnerEstatus.setSelection(1)
+                // Verificar si la fecha seleccionada está dentro de un rango ocupado
+                val isDateOccupied = rentedDates.any { (start, end) ->
+                    selectedDateMillis in start..end
+                }
+
+                if (isDateOccupied) {
+                    // Si la fecha está ocupada, encontrar la fecha más cercana disponible
+                    val closestDate = findClosestAvailableDate(selectedDate)
+                    val formattedDate = dateFormat.format(closestDate.time)
+                    editText.setText(formattedDate)
+                    Toast.makeText(requireContext(), "La fecha seleccionada está ocupada, seleccionamos la fecha más cercana.", Toast.LENGTH_SHORT).show()
+                } else {
+                    if (selectedDate.before(Calendar.getInstance().apply { time = fechaAlta })) {
+                        Toast.makeText(requireContext(), "La fecha de renta no puede ser antes de la fecha de alta", Toast.LENGTH_SHORT).show()
+                    } else {
+                        val formattedDate = dateFormat.format(selectedDate.time)
+                        editText.setText(formattedDate)
+
+                        val currentDate = Calendar.getInstance()
+                        if (selectedDate.before(currentDate) || selectedDate == currentDate) {
+                            spinnerEstatus.setSelection(1)  // Estatus "Finalizado"
+                        } else {
+                            spinnerEstatus.setSelection(0)  // Estatus "Activo"
+                        }
                     }
                 }
             },
@@ -444,6 +570,32 @@ class EditCarFragment : Fragment() {
         calendarFechaAlta.set(Calendar.MILLISECOND, 0)
 
         datePickerDialog.datePicker.minDate = calendarFechaAlta.timeInMillis // Establecer la fecha mínima
+
+        // Bloquear fechas ocupadas
+        val blockedDates = mutableListOf<Long>()
+        rentedDates.forEach { (start, end) ->
+            val blockedCalendar = Calendar.getInstance().apply { timeInMillis = start }
+            while (blockedCalendar.timeInMillis <= end) {
+                blockedDates.add(blockedCalendar.timeInMillis)
+                blockedCalendar.add(Calendar.DATE, 1)
+            }
+        }
+
+        // Configurar el DatePicker para bloquear fechas ocupadas
+        datePickerDialog.datePicker.setOnDateChangedListener { _, year, month, dayOfMonth ->
+            val selectedDate = Calendar.getInstance().apply {
+                set(year, month, dayOfMonth)
+            }
+
+            // Si la fecha seleccionada está ocupada, deshabilitar la selección
+            if (blockedDates.contains(selectedDate.timeInMillis)) {
+                // Encontrar la fecha más cercana disponible
+                val closestDate = findClosestAvailableDate(selectedDate)
+                val formattedDate = dateFormat.format(closestDate.time)
+                editText.setText(formattedDate)
+                Toast.makeText(requireContext(), "Fecha ocupada, seleccionada la fecha más cercana disponible.", Toast.LENGTH_SHORT).show()
+            }
+        }
 
         datePickerDialog.show()
     }
@@ -604,7 +756,7 @@ class EditCarFragment : Fragment() {
             "ID_Auto" to car.ID,
             "ID_User" to usuarioId,
             "Fecha_Renta" to fechaRenta,
-            "Fecha_Devolucion" to fechaDevolucion
+            "Fecha_Dev" to fechaDevolucion
         )
 
         db.collection("Rents")

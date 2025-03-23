@@ -51,6 +51,7 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     implementation("com.github.bumptech.glide:glide:4.16.0")
+    implementation("com.wdullaer:materialdatetimepicker:4.2.3")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
