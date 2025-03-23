@@ -54,10 +54,10 @@ class MainActivity : AppCompatActivity() {
         navView.setNavigationItemSelectedListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.nav_home -> {
-                    Snackbar.make(binding.root, "Inicio seleccionado", Snackbar.LENGTH_SHORT).show()
+                    navController.navigate(R.id.nav_home)
                 }
                 R.id.nav_creditos -> {
-                    Snackbar.make(binding.root, "Créditos seleccionados", Snackbar.LENGTH_SHORT).show()
+                   navController.navigate(R.id.nav_creditos)
                 }
                 R.id.nav_logout -> {
                     FirebaseAuth.getInstance().signOut() // Cerrar sesión en Firebase
