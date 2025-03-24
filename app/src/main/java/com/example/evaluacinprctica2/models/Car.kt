@@ -10,7 +10,8 @@ data class Car(
     @PropertyName("Fecha_Alta") var Fecha_Alta: String = "",
     @PropertyName("FotoUrl") var FotoUrl: String = "",
     @PropertyName("Marca") var Marca: String = "",
-    @PropertyName("Modelo") var Modelo: String = ""
+    @PropertyName("Modelo") var Modelo: String = "",
+    @PropertyName("Baja") var Baja: Boolean = false
 ) : Parcelable {
 
     constructor(parcel: Parcel) : this(
@@ -19,7 +20,8 @@ data class Car(
         parcel.readString() ?: "",
         parcel.readString() ?: "",
         parcel.readString()?:"",
-        parcel.readString() ?: ""
+        parcel.readString() ?: "",
+        parcel.readBoolean() ?: false
     )
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
@@ -29,6 +31,7 @@ data class Car(
         parcel.writeString(FotoUrl)
         parcel.writeString(Marca)
         parcel.writeString(Modelo)
+        parcel.writeBoolean(Baja)
     }
 
     override fun describeContents(): Int = 0

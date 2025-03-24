@@ -71,16 +71,6 @@
                 android:textColor="@android:color/white"
                 android:layout_marginBottom="10dp"/>
 
-            <TextView
-                android:id="@+id/tvLogin"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/btn_rtnLog"
-                android:textColor="@android:color/holo_blue_dark"
-                android:textSize="14sp"
-                android:layout_marginTop="10dp"
-                android:clickable="true"
-                android:focusable="true"/>
         </LinearLayout>
     </ScrollView>
 </layout>

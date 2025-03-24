@@ -30,8 +30,6 @@
                 android:resource="@xml/filepaths" />
         </provider>
 
-
-        <!-- SplashActivity es la primera en ejecutarse -->
         <activity
             android:name=".SplashActivity"
             android:exported="true">
@@ -50,7 +48,5 @@
         <activity android:name=".LoginActivity" android:configChanges="orientation|screenSize"/>
         <activity android:name=".RegisterActivity" android:configChanges="orientation|screenSize"/>
     </application>
-
-
 
 </manifest>

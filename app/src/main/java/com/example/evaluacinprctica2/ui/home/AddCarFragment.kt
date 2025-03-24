@@ -231,7 +231,8 @@ class AddCarFragment : Fragment() {
                         "Modelo" to modelo,
                         "Estatus" to "Activo",
                         "Fecha_Alta" to currentDate,
-                        "FotoUrl" to fotoUrl
+                        "FotoUrl" to fotoUrl,
+                        "Baja" to false
                     )
 
                     db.collection("vehiculos").document(newID.toString())

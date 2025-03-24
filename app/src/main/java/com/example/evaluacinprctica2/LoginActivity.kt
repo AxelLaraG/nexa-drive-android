@@ -70,6 +70,10 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun signIn(email: String, password: String) {
+        binding.btnLogin.isEnabled = false
+        binding.tvRegister.isEnabled = false
+        binding.tvForgotPassword.isEnabled = false
+
         auth.signInWithEmailAndPassword(email, password)
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
@@ -77,6 +81,10 @@ class LoginActivity : AppCompatActivity() {
                     startActivity(Intent(this, MainActivity::class.java))
                     finish() // Cierra LoginActivity para que no vuelva atrás
                 } else {
+                    binding.btnLogin.isEnabled = true
+                    binding.tvRegister.isEnabled = true
+                    binding.tvForgotPassword.isEnabled = true
+
                     Toast.makeText(this, "Error: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
                 }
             }

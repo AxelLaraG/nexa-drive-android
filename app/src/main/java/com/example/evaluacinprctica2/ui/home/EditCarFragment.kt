@@ -28,6 +28,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.view.isEmpty
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 import com.bumptech.glide.Glide
 import com.example.evaluacinprctica2.R
 import com.example.evaluacinprctica2.models.Car
@@ -187,19 +188,34 @@ class EditCarFragment : Fragment() {
             .setTitle("Eliminar Renta")
             .setMessage("¿Estás seguro de que deseas eliminar esta renta?")
             .setPositiveButton("Eliminar") { dialog, _ ->
-                // Eliminar la renta de Firestore
+                // Primero, obtener la información de la renta eliminada
                 val db = FirebaseFirestore.getInstance()
                 db.collection("Rents")
                     .document(rentaId)
-                    .delete()
-                    .addOnSuccessListener {
-                        Toast.makeText(requireContext(), "Renta eliminada con éxito", Toast.LENGTH_SHORT).show()
-                        // Recargar la lista de rentas después de eliminar
-                        validarRentas()
+                    .get()
+                    .addOnSuccessListener { rentaDoc ->
+                        if (rentaDoc.exists()) {
+                            val idAuto = rentaDoc.getString("ID_Auto")
+
+                            // Eliminar la renta de Firestore
+                            db.collection("Rents")
+                                .document(rentaId)
+                                .delete()
+                                .addOnSuccessListener {
+                                    verificarYActualizarEstadoVehiculo()
+                                    Toast.makeText(requireContext(), "Renta eliminada con éxito", Toast.LENGTH_SHORT).show()
+                                    validarRentas()
+                                    loadRentedDates()
+                                }
+                                .addOnFailureListener { e ->
+                                    Toast.makeText(requireContext(), "Error al eliminar la renta: ${e.message}", Toast.LENGTH_SHORT).show()
+                                }
+                        }
                     }
                     .addOnFailureListener { e ->
-                        Toast.makeText(requireContext(), "Error al eliminar la renta: ${e.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), "Error al obtener la renta: ${e.message}", Toast.LENGTH_SHORT).show()
                     }
+
                 dialog.dismiss()
             }
             .setNegativeButton("Cancelar") { dialog, _ ->
@@ -207,6 +223,34 @@ class EditCarFragment : Fragment() {
             }
             .show()
     }
+
+    private fun verificarYActualizarEstadoVehiculo() {
+        val db = FirebaseFirestore.getInstance()
+
+        // Obtener el estado del vehículo
+        db.collection("vehiculos")
+            .document(car.ID)
+            .get()
+            .addOnSuccessListener { autoDoc ->
+                if (autoDoc.exists() && !car.Baja) {
+                    val estado = autoDoc.getString("Estatus")
+                    if (estado == "Inactivo") {
+
+                        db.collection("vehiculos")
+                            .document(car.ID)
+                            .update("Estatus", "Activo")
+                            .addOnSuccessListener {
+                                println("Estado del vehículo actualizado a activo")
+                            }
+                        spinnerEstatus.setSelection(0)
+                    }
+                }
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(requireContext(), "Error al obtener el vehículo: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
 
     private fun loadRentedDates() {
         val db = FirebaseFirestore.getInstance()
@@ -362,8 +406,21 @@ class EditCarFragment : Fragment() {
         val estatusPos = if (car.Estatus == "Activo") 0 else 1
         spinnerEstatus.setSelection(estatusPos)
 
-        validarRentas()
+        spinnerEstatus.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val selectedStatus = parent?.getItemAtPosition(position).toString()
 
+                if (selectedStatus == "Activo" && car.Baja) {
+                    car = car.copy(Baja = false)
+                }
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                // No hacer nada si no se selecciona nada
+            }
+        }
+
+        validarRentas()
     }
 
     private fun validarRentas() {
@@ -480,7 +537,9 @@ class EditCarFragment : Fragment() {
                     editText.setText(formattedDate)
 
                     val currentDate = Calendar.getInstance()
-                    if (selectedDate.before(currentDate) || (Calendar.getInstance().apply { time = fechaRenta }).after(currentDate)){
+                    if ((selectedDate.before(currentDate) ||
+                                ((Calendar.getInstance().apply { time = fechaRenta }).after(currentDate))
+                                &&spinnerEstatus.selectedItem !=1 )){
                         spinnerEstatus.setSelection(0)
                     } else if (selectedDate.after(currentDate) || selectedDate.equals(currentDate)){
                         spinnerEstatus.setSelection(1)
@@ -579,10 +638,15 @@ class EditCarFragment : Fragment() {
                         editText.setText(formattedDate)
 
                         val currentDate = Calendar.getInstance()
-                        if (selectedDate.before(currentDate) || selectedDate == currentDate) {
-                            spinnerEstatus.setSelection(1)  // Estatus "Finalizado"
+                        if (selectedDate.before(currentDate)
+                            || selectedDate == currentDate
+                            || spinnerEstatus.selectedItem == 1) {
+                            spinnerEstatus.setSelection(1)
+                        } else if(selectedDate.after(currentDate)
+                            && spinnerEstatus.selectedItem == 1){
+                            spinnerEstatus.setSelection(1)
                         } else {
-                            spinnerEstatus.setSelection(0)  // Estatus "Activo"
+                            spinnerEstatus.setSelection(0)
                         }
                     }
                 }
@@ -710,9 +774,39 @@ class EditCarFragment : Fragment() {
     }
 
     private fun deleteCarLogical() {
-        val updatedCar = car.copy(Estatus = "Inactivo")
+        val updatedCar = car.copy(
+            Baja = true,
+            Estatus = "Inactivo")
+        deleteRentasForCar()
         updateCar(updatedCar)
     }
+
+    private fun deleteRentasForCar() {
+        val db = FirebaseFirestore.getInstance()
+
+        db.collection("Rents")
+            .whereEqualTo("ID_Auto", car.ID)
+            .get()
+            .addOnSuccessListener { querySnapshot ->
+                if (querySnapshot.isEmpty) {
+                    Toast.makeText(requireContext(), "No se encontraron rentas asociadas a este vehículo.", Toast.LENGTH_SHORT).show()
+                    return@addOnSuccessListener
+                }
+
+                for (doc in querySnapshot.documents) {
+                    db.collection("Rents").document(doc.id)
+                        .delete()
+                        .addOnSuccessListener {
+                            Log.d("DeleteRenta", "Renta eliminada: ${doc.id}")
+                        }
+                        .addOnFailureListener { e ->
+                            Log.e("DeleteRenta", "Error al eliminar renta: ${e.message}")
+                            Toast.makeText(requireContext(), "Error al eliminar renta: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                }
+            }
+    }
+
 
     private fun deleteCarPhysical() {
         val db = FirebaseFirestore.getInstance()
@@ -720,6 +814,7 @@ class EditCarFragment : Fragment() {
             .document(car.ID)
             .delete()
             .addOnSuccessListener {
+                deleteRentasForCar()
                 Toast.makeText(requireContext(), "Vehículo eliminado", Toast.LENGTH_SHORT).show()
                 parentFragmentManager.popBackStack()
             }
@@ -876,7 +971,7 @@ class EditCarFragment : Fragment() {
             .set(updatedCar)
             .addOnSuccessListener {
                 Toast.makeText(requireContext(), "Vehículo actualizado", Toast.LENGTH_SHORT).show()
-                parentFragmentManager.popBackStack() // Volver al fragmento anterior
+                findNavController().popBackStack(R.id.nav_home, false)
             }
             .addOnFailureListener { e ->
                 Toast.makeText(requireContext(), "Error al actualizar: ${e.message}", Toast.LENGTH_SHORT).show()

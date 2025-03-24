@@ -19,7 +19,6 @@ class RegisterActivity : AppCompatActivity() {
 
         auth = FirebaseAuth.getInstance()
 
-
         binding.btnRegister.setOnClickListener {
             val email = binding.etEmail.text.toString()
             val password = binding.etPassword.text.toString()
@@ -65,6 +64,8 @@ class RegisterActivity : AppCompatActivity() {
     }
 
     private fun registrarUsuario(email: String, password: String, nombre: String) {
+        binding.btnRegister.isEnabled = false
+
         auth.createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
@@ -86,6 +87,7 @@ class RegisterActivity : AppCompatActivity() {
                             Toast.makeText(this, "Error al guardar usuario: ${e.message}", Toast.LENGTH_SHORT).show()
                         }
                 } else {
+                    binding.btnRegister.isEnabled = true
                     Toast.makeText(this, "Error: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
                 }
             }
