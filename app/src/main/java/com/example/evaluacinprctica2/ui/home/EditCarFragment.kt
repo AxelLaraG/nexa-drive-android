@@ -28,6 +28,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.view.isEmpty
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.bumptech.glide.Glide
 import com.example.evaluacinprctica2.R
@@ -38,6 +39,7 @@ import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -814,14 +816,25 @@ class EditCarFragment : Fragment() {
             .document(car.ID)
             .delete()
             .addOnSuccessListener {
-                deleteRentasForCar()
-                Toast.makeText(requireContext(), "Vehículo eliminado", Toast.LENGTH_SHORT).show()
-                parentFragmentManager.popBackStack()
+                // Verifica que el fragmento esté adjunto antes de usar el contexto
+                if (isAdded) {
+                    // Usa lifecycleScope para evitar problemas con el contexto
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        if (isAdded) {  // Verifica nuevamente antes de mostrar el Toast
+                            Toast.makeText(requireContext(), "Vehículo eliminado", Toast.LENGTH_SHORT).show()
+                            findNavController().popBackStack(R.id.nav_home, false)
+                        }
+                    }
+                }
             }
             .addOnFailureListener { e ->
-                Toast.makeText(requireContext(), "Error al eliminar: ${e.message}", Toast.LENGTH_SHORT).show()
+                // Verifica que el fragmento esté adjunto antes de usar el contexto
+                if (isAdded) {
+                    Toast.makeText(requireContext(), "Error al eliminar: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
     }
+
 
     private fun saveChanges(){
         val estatus = spinnerEstatus.selectedItem.toString()

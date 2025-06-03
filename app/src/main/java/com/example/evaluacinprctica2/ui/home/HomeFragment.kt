@@ -8,6 +8,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.MediaController
 import android.widget.SearchView
 import android.widget.Toast
 import android.widget.VideoView
@@ -20,6 +21,9 @@ import com.example.evaluacinprctica2.R
 import com.example.evaluacinprctica2.adapters.CarAdapter
 import com.example.evaluacinprctica2.models.Car
 import com.example.evaluacinprctica2.models.Rentas
+import com.google.android.exoplayer2.ExoPlayer
+import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.ui.StyledPlayerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -27,6 +31,8 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageReference
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
@@ -40,7 +46,9 @@ class HomeFragment : Fragment() {
     private lateinit var rentasMap: MutableMap<String,Rentas>
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
     private lateinit var searchView: SearchView
-    private lateinit var videoView: VideoView
+    private lateinit var video: StorageReference
+    private var player: ExoPlayer? = null
+    private lateinit var playerView: StyledPlayerView
     private lateinit var btnFilter: Button
 
     override fun onResume() {
@@ -57,7 +65,6 @@ class HomeFragment : Fragment() {
         swipeRefreshLayout = rootView.findViewById(R.id.swipeRefreshLayout)
         recyclerView = rootView.findViewById(R.id.recyclerViewCars)
         searchView = rootView.findViewById(R.id.searchView)
-        videoView = rootView.findViewById(R.id.videoView)
         btnFilter = rootView.findViewById(R.id.btnFilter)
         val fab: FloatingActionButton = rootView.findViewById(R.id.fab)
 
@@ -82,7 +89,10 @@ class HomeFragment : Fragment() {
             loadCars()
         }
 
-        //setupVideoPlayer()
+        playerView = rootView.findViewById(R.id.playerView)
+        video = FirebaseStorage.getInstance().reference.child("videos/admon.mp4")
+
+        obtenerYReproducirVideo()
 
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
@@ -100,6 +110,23 @@ class HomeFragment : Fragment() {
         }
 
         return rootView
+    }
+
+    private fun obtenerYReproducirVideo() {
+        video.downloadUrl.addOnSuccessListener { uri ->
+            // Inicializar ExoPlayer
+            player = ExoPlayer.Builder(requireContext()).build().apply {
+                val mediaItem = MediaItem.Builder().setUri(uri).build()
+                setMediaItem(mediaItem)
+                prepare()
+                playWhenReady = true
+                repeatMode = ExoPlayer.REPEAT_MODE_ALL // 🔄 Reproducción en bucle
+            }
+            // Asignar el reproductor al StyledPlayerView
+            playerView.player = player
+        }.addOnFailureListener {
+            // Manejo de errores al cargar el video
+        }
     }
 
     private fun loadCars() {

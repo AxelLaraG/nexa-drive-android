@@ -21,12 +21,12 @@
                 android:padding="16dp">
 
                 <!-- VideoView en la parte superior -->
-                <VideoView
-                    android:id="@+id/videoView"
+                <com.google.android.exoplayer2.ui.StyledPlayerView
+                    android:id="@+id/playerView"
                     android:layout_width="match_parent"
                     android:layout_height="200dp"
                     android:layout_marginBottom="16dp"
-                    android:background="@android:color/darker_gray"/>
+                    android:background="@android:color/darker_gray" />
 
                 <!-- SearchView -->
                 <SearchView

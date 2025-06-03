@@ -52,6 +52,7 @@ dependencies {
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     implementation("com.github.bumptech.glide:glide:4.16.0")
     implementation("com.wdullaer:materialdatetimepicker:4.2.3")
+    implementation ("com.google.android.exoplayer:exoplayer:2.18.0")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
