@@ -23,11 +23,11 @@ Aplicación móvil nativa para Android diseñada para la gestión digital de ren
    git clone https://github.com/AxelLaraG/nexa-drive-android.git
    ```
 2. **Abrir el entorno:**
-
+   Importa el proyecto directamente en **Android Studio**. El entorno sincronizará automáticamente las dependencias nativas definidas en los archivos de Gradle.
 3. **Conexión a la base de datos:**
-
+   Para enlazar la aplicación con una base de datos propia, descarga tu archivo de configuración `google-services.json` desde la consola del proveedor y colócalo dentro del directorio `/app`.
 4. **Ejecución:**
-
+   Selecciona un emulador (AVD) o conecta un dispositivo físico mediante depuración USB (ADB) y ejecuta el proyecto.
 ## Estructura y Arquitectura
 El código fuente principal está segmentado para facilitar la escalabilidad y el mantenimiento por módulos lógicos:
 
